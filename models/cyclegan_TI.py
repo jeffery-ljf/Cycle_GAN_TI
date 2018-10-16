@@ -14,8 +14,8 @@ class CycleGAN_TI(nn.Module):
         self.num_channels_DT2I = 100  # T2I判别器中的频道数
         self.embedding_size = 100  # 单词embedding大小
         self.hidden_size_gru = 100  # gru中的隐藏层结点数
-        self.height = 256  # 图像的高度
-        self.width = 256  # 图像的宽度
+        self.height = 64  # 图像的高度
+        self.width = 64  # 图像的宽度
         self.start_idx = 0  # 开始token的序号
         self.end_idx = 1  # 结束token的序号
         self.padding_idx = 2  # 填充token的序号
@@ -25,8 +25,8 @@ class CycleGAN_TI(nn.Module):
         self.num_filters = [100, 200, 200, 200, 200, 100, 100, 100, 100, 100, 160, 160]  # 生成器T2I的channels数量
         self.minseqlen = 20  # 为防止TextCNN的卷积层窗口太大，应该最小的序列长度
         self.encoder_image = Encoder_Image(num_channels=self.num_channels_encoder)
-        self.dataset = Dataset_SketchyScene(images_src='../datas/SketchyScene-7k/train/DRAWING_GT/',
-                                         texts_src='../datas/test/texts/test.token',
+        self.dataset = Dataset_flickr30K(images_src='../datas/flickr30K/images/',
+                                         texts_src='../datas/flickr30K/texts/results_20130124.token',
                                          transform=transforms.Compose([transforms.Resize((self.height, self.width)),
                                                                        transforms.ToTensor()]),
                                          start_idx=self.start_idx, end_idx=self.end_idx, padding_idx=self.padding_idx)  # 载入数据集
@@ -183,6 +183,7 @@ class CycleGAN_TI(nn.Module):
     def forward_T2I(self, x, y):  # 文字生成图像的路线
         loss_func = nn.NLLLoss(ignore_index=self.padding_idx)
         mse = nn.MSELoss()
+        l1 = nn.L1Loss()
         # 利用文字信息生成图像
         y_gen = self.generate_Y(x)
         x_trans = torch.transpose(x, dim0=0, dim1=1)
@@ -205,19 +206,24 @@ class CycleGAN_TI(nn.Module):
         pre_pos = self.D_T2I(y)
         pre_neg = self.D_T2I(y_gen.detach())  # 注意这里需要把y_gen从重构路径中分离
         loss_D = (mse(pre_pos, torch.ones(y.shape[0], 1).cuda()) + mse(pre_neg, torch.zeros(y.shape[0], 1).cuda())) / 2.0
+        loss_l2 = 0.0
+        for param in self.D_T2I.output_layer.parameters():  # 加入L2正则化
+            loss_l2 += torch.norm(param, p=2)
+        loss_D += loss_l2 * 0.001
         # 获得T2I生成器的对抗误差
         pre_neg = self.D_T2I(y_gen)  # 注意这里不需要把y_gen从重构路径中分离
         loss_Gads = mse(pre_neg, torch.ones(y.shape[0], 1).cuda())
+        # loss_Gads = l1(y_gen, y)
         #展示重构后的输出
         x_rsc = torch.max(torch.transpose(predictions, dim0=0, dim1=1), dim=2)[1]  # batch, seq_len
         return loss_rsc, loss_Gads, loss_D, x_rsc, y_gen
     def backward(self, updateD = True):
         if updateD:
             self.zero_grad()
-            self.loss_D_T2I.backward(retain_graph=True)
+            (self.loss_D_T2I).backward(retain_graph=True)
             self.T2I_D_optimizer.step()
         self.zero_grad()
-        (self.loss_Gads_T2I).backward()
+        (self.loss_rsc_T2I + (self.loss_Gads_T2I)).backward()
         self.T2I_rsc_optimizer.step()
 
 

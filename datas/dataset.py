@@ -43,6 +43,7 @@ class Dataset_flickr30K(Dataset):
         return result
     def __getitem__(self, item):
         image = Image.open(self.images_src+self.images_name[random.randint(0, self.images_name.__len__()-1)]).convert('RGB')
+        # image = Image.open(self.images_src + self.images_name[item]).convert('RGB')
         image = self.transform(image)
         text = self.texts[item]
         return image, text
@@ -84,6 +85,7 @@ class Dataset_SketchyScene(Dataset):
         return result
     def __getitem__(self, item):
         image = Image.open(self.images_src+self.images_name[random.randint(0, self.images_name.__len__()-1)]).convert('L')  # 灰度模式
+        # image = Image.open(self.images_src + self.images_name[item]).convert('L')
         image = self.transform(image)
         text = self.texts[item]
         return image, text

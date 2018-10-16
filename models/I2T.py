@@ -6,17 +6,28 @@ class Encoder_Image(nn.Module):  # 把图片转换成图片特征
         super().__init__()
         # 假设输入size为64*64，输出为out_channels的向量
         # 构建卷积层获取图像的信息
-        self.conv_layers = nn.Sequential(*[nn.Conv2d(in_channels=1, out_channels=num_channels, kernel_size=(4, 4),
-                                                     stride=4, bias=bias),
+        self.conv_layers = nn.Sequential(*[nn.Conv2d(in_channels=3, out_channels=num_channels, kernel_size=(5, 5),
+                                                     stride=1, bias=bias),
                                            nn.ReLU(True),
                                            nn.Conv2d(in_channels=num_channels, out_channels=num_channels, kernel_size=(4, 4),
                                                      stride=4, bias=bias),
                                            nn.ReLU(True),
-                                           nn.Conv2d(in_channels=num_channels, out_channels=num_channels, kernel_size=(4, 4),
-                                                     stride=4, bias=bias),
+                                           nn.Conv2d(in_channels=num_channels, out_channels=num_channels, kernel_size=(2, 2),
+                                                     stride=1, bias=bias),
+                                           nn.BatchNorm2d(num_features=num_channels),
                                            nn.ReLU(True),
-                                           nn.Conv2d(in_channels=num_channels, out_channels=num_channels, kernel_size=(4, 4),
-                                                     stride=4, bias=bias),
+                                           nn.Conv2d(in_channels=num_channels, out_channels=num_channels, kernel_size=(2, 2),
+                                                     stride=2, bias=bias),
+                                           nn.ReLU(True),
+                                           nn.Conv2d(in_channels=num_channels, out_channels=num_channels, kernel_size=(2, 2),
+                                                     stride=1, bias=bias),
+                                           nn.BatchNorm2d(num_features=num_channels),
+                                           nn.ReLU(True),
+                                           nn.Conv2d(in_channels=num_channels, out_channels=num_channels, kernel_size=(2, 2),
+                                                     stride=2, bias=bias),
+                                           nn.ReLU(True),
+                                           nn.Conv2d(in_channels=num_channels, out_channels=num_channels, kernel_size=(3, 3),
+                                                     stride=1, bias=bias),
                                            nn.ReLU(True)
                                            ])
     def forward(self, input):

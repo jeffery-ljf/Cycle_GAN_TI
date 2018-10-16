@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import visdom
 from models.cyclegan_TI import CycleGAN_TI
+from torch.nn import init
 def validate_G(texts, epoch, win, vis):
     text_list = model.dataset.show(texts)
     text_vis = str(epoch) + ': '
@@ -12,10 +13,15 @@ def validate_G(texts, epoch, win, vis):
         text_vis += ' '.join(text)
         text_vis += '</h5>'
     vis.text(text=text_vis, win=win)
+def init_parameters(model):
+    for weight in model.parameters():
+        if weight.shape.__len__()>2:
+            init.xavier_normal_(weight)
 if __name__ == '__main__':
     vis = visdom.Visdom(port=2424, env='cyclegan')
     model = CycleGAN_TI().cuda()
-    for epoch in range(1000):
+    init_parameters(model)  # 初始化参数
+    for epoch in range(10000):
         time1 = time.time()
         totalloss_rsc_T2I = 0.0
         totalloss_Gads_T2I = 0.0
@@ -24,7 +30,7 @@ if __name__ == '__main__':
             texts = batch[0].cuda()
             images = batch[1].cuda()
             loss_rsc_T2I, loss_Gads_T2I, loss_D_T2I, texts_rsc, images_gen = model.forward((texts, images))
-            if epoch % 10 ==0:
+            if i % 2 ==0:
                 model.backward(updateD=True)
             else:
                 model.backward(updateD=False)
